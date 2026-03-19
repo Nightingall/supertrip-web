@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supertrip — Your AI Travel Planner</title>
+  <meta name="description" content="Tell Supertrip where you're headed — it'll build your entire trip, down to the spots the locals queue for. No spreadsheets, no 47 open tabs.">
+  <meta property="og:title" content="Supertrip — Your AI Travel Planner">
+  <meta property="og:description" content="One chat, one perfect trip. Get a personalised day-by-day itinerary in 60 seconds.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            orange: {
+              DEFAULT: '#f97316',
+              dark: '#ea580c',
+            },
+            stone: {
+              50: '#fafaf9',
+              100: '#f5f5f4',
+              200: '#e7e5e4',
+              300: '#d6d3d1',
+              400: '#a8a29e',
+              500: '#78716c',
+              900: '#1c1917',
+            },
+            'warm-bg': '#fff7ed',
+          },
+          fontFamily: {
+            display: ['Instrument Serif', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #fafaf9;
+      color: #1c1917;
+      overflow-x: hidden;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    .hero-phones {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      overflow: visible;
+    }
+
+    .hero-screenshot {
+      width: 100%;
+      height: auto;
+    }
+
+    .hero-screenshot-front {
+      max-width: 320px;
+      flex-shrink: 0;
+      transform: rotate(-4deg);
+      filter: drop-shadow(0 12px 32px rgba(0,0,0,0.12));
+    }
+
+    .hero-screenshot-back {
+      max-width: 300px;
+      flex-shrink: 0;
+      transform: rotate(4deg);
+      filter: drop-shadow(0 12px 32px rgba(0,0,0,0.12));
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(28, 25, 23, 0.4);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-panel {
+      background: #ffffff;
+      border: 1px solid #e7e5e4;
+      border-radius: 24px;
+      padding: 2.5rem;
+      max-width: 520px;
+      width: 100%;
+      transform: translateY(20px) scale(0.96);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 40px 80px -20px rgba(28,25,23,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .modal-backdrop.active .modal-panel {
+      transform: translateY(0) scale(1);
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: #ffffff;
+      font-weight: 700;
+      padding: 0.875rem 2rem;
+      border-radius: 18px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0px 8px 32px rgba(249,115,22,0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0px 12px 40px rgba(249,115,22,0.5);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      border: 1px solid #e7e5e4;
+      color: #1c1917;
+      font-weight: 600;
+      padding: 0.875rem 2rem;
+      border-radius: 18px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-secondary:hover {
+      background: #f5f5f4;
+      border-color: #d6d3d1;
+      transform: translateY(-2px);
+    }
+
+    /* Input */
+    .input-field {
+      width: 100%;
+      padding: 0.875rem 1.25rem;
+      background: #ffffff;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+      color: #1c1917;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-field::placeholder { color: #a8a29e; }
+
+    .input-field:focus {
+      border-color: #f97316;
+      box-shadow: 0 0 0 3px rgba(249,115,22,0.12);
+    }
+
+    /* Benefit list */
+    .benefit-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+    }
+
+    .benefit-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1rem;
+    }
+
+    /* Pill badges */
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .pill-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .pill-orange {
+      background: rgba(249,115,22,0.09);
+      border: 1px solid rgba(249,115,22,0.21);
+      color: #ea580c;
+    }
+    .pill-orange .dot { background: #f97316; }
+
+    .pill-purple {
+      background: rgba(139,92,246,0.09);
+      border: 1px solid rgba(139,92,246,0.21);
+      color: #7c3aed;
+    }
+    .pill-purple .dot { background: #8b5cf6; }
+
+    .pill-green {
+      background: rgba(16,185,129,0.09);
+      border: 1px solid rgba(16,185,129,0.21);
+      color: #059669;
+    }
+    .pill-green .dot { background: #10b981; }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.35s; }
+    .delay-4 { animation-delay: 0.5s; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ffffff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    /* Nav */
+    .nav-bar {
+      background: transparent;
+    }
+
+    .social-link {
+      color: #a8a29e;
+      transition: color 0.2s ease;
+    }
+    .social-link:hover { color: #f97316; }
+
+    /* Success check */
+    @keyframes checkPop {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .check-pop { animation: checkPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+    /* Hero marquee strip */
+    .hero-marquee-strip {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      padding: 1.5rem 0;
+      background: linear-gradient(180deg, transparent 0%, rgba(250,250,249,0.6) 30%, #fafaf9 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6%, black 38%, transparent 52%);
+      mask-image: linear-gradient(to right, transparent 0%, black 6%, black 38%, transparent 52%);
+    }
+
+    .marquee {
+      overflow: hidden;
+      position: relative;
+      padding: 6px 0;
+      margin: -6px 0;
+    }
+
+    .marquee-track {
+      display: flex;
+      gap: 0.75rem;
+      width: max-content;
+      animation: scroll-left 50s linear infinite;
+    }
+
+    .marquee:hover .marquee-track {
+      animation-play-state: paused;
+    }
+
+    @keyframes scroll-left {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .destination-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1.25rem;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid #e7e5e4;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #1c1917;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      cursor: default;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(28,25,23,0.06);
+    }
+
+    .destination-pill:hover {
+      border-color: #f97316;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(249,115,22,0.15);
+      background: #ffffff;
+    }
+
+    .destination-pill .dest-location {
+      color: #a8a29e;
+      font-weight: 400;
+    }
+
+    @media (max-width: 640px) {
+      .hero-phones { justify-content: center; gap: 8px; }
+      .hero-screenshot-front { max-width: 52vw; transform: rotate(-4deg) translateY(32px); }
+      .hero-screenshot-back { max-width: 44vw; transform: rotate(4deg) translateY(-16px); }
+      .hero-marquee-strip { position: relative; bottom: auto; margin-top: 2rem; }
+      .modal-panel { padding: 1.5rem; }
+      .hero-marquee-strip {
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 50%, transparent 60%);
+        mask-image: linear-gradient(to right, transparent 0%, black 4%, black 50%, transparent 60%);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav-bar fixed top-0 left-0 right-0 z-50 px-6 py-4">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="#" class="font-sans font-bold text-xl tracking-tight text-stone-900 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-orange to-orange-dark shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#ffffff" stroke="#ffffff"/></svg>
+        </span>
+        Supertrip
+      </a>
+      <div class="flex items-center gap-4">
+        <a href="https://www.instagram.com/supertripapp" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Instagram">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <a href="https://www.tiktok.com/@supertripapp" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="TikTok">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.87a8.16 8.16 0 004.76 1.52v-3.4a4.85 4.85 0 01-1-.3z"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 pt-20 sm:pt-24 pb-0 overflow-visible" style="background: linear-gradient(180deg, #fff7ed 0%, #fafaf9 60%);">
+
+    <div class="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 items-center lg:items-start gap-6 sm:gap-8 lg:gap-16 relative z-10">
+
+      <!-- Left column: text -->
+      <div class="text-left lg:pt-16">
+        <h1 class="animate-in delay-1 font-display text-5xl sm:text-6xl lg:text-7xl leading-[1.05] text-stone-900 mb-6 sm:mb-4" style="font-weight: 400;">
+          <span class="text-orange">One chat.</span> Your entire<br class="hidden sm:inline"> trip, planned.
+        </h1>
+
+        <p class="animate-in delay-2 font-sans text-base sm:text-lg lg:text-xl text-stone-500 max-w-lg mb-10 sm:mb-10 leading-relaxed">
+          Tell Supertrip where you're headed — it'll build your entire trip, down to the pastel de nata spot the locals queue for. No spreadsheets, no 47 open tabs.
+        </p>
+
+        <div class="animate-in delay-3 flex flex-col sm:flex-row items-center lg:justify-start gap-4">
+          <button onclick="openModal('earlyAdopter')" class="btn-primary sm:w-auto">
+            Get Early Access
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+          </button>
+          <button onclick="openModal('waitlist')" class="btn-secondary sm:w-auto">
+            Join Waitlist
+          </button>
+        </div>
+
+        <p class="animate-in delay-4 text-sm text-stone-400 mt-6 flex items-center lg:justify-start gap-1.5">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
+          63 early adopters already in
+        </p>
+      </div>
+
+      <!-- Right column: app screenshots — sits above the marquee -->
+      <div class="animate-in delay-3 hero-phones lg:-mt-8 lg:-mb-24 mb-8 relative z-20 justify-center">
+        <img src="screenshots/chat_trip_build.png" alt="Supertrip — AI Trip Building" class="hero-screenshot hero-screenshot-front mx-auto md:mx-0">
+        <img src="screenshots/explore_map_view.png" alt="Supertrip — Map Route View" class="hero-screenshot hero-screenshot-back">
+      </div>
+
+    </div>
+
+    <!-- Destination marquee pinned to bottom of hero, sliding behind the phone -->
+    <div class="hero-marquee-strip animate-in delay-4">
+      <div class="marquee">
+        <div class="marquee-track">
+          <span class="destination-pill">&#127477;&#127481; Lisbon &amp; the Coast <span class="dest-location">Portugal</span></span>
+          <span class="destination-pill">&#127471;&#127477; Tokyo to Kyoto <span class="dest-location">Japan</span></span>
+          <span class="destination-pill">&#127466;&#127480; Barcelona City Break <span class="dest-location">Spain</span></span>
+          <span class="destination-pill">&#127470;&#127465; Bali Explorer <span class="dest-location">Indonesia</span></span>
+          <span class="destination-pill">&#127468;&#127479; Greek Island Hop <span class="dest-location">Greece</span></span>
+          <span class="destination-pill">&#127482;&#127480; NYC Weekend <span class="dest-location">USA</span></span>
+          <span class="destination-pill">&#127474;&#127462; Morocco Road Trip <span class="dest-location">Morocco</span></span>
+          <span class="destination-pill">&#127464;&#127469; Swiss Alps Adventure <span class="dest-location">Switzerland</span></span>
+          <span class="destination-pill">&#127470;&#127481; Amalfi Coast <span class="dest-location">Italy</span></span>
+          <span class="destination-pill">&#127470;&#127480; Iceland Ring Road <span class="dest-location">Iceland</span></span>
+          <span class="destination-pill">&#127462;&#127479; Patagonia Trek <span class="dest-location">Argentina</span></span>
+          <span class="destination-pill">&#127474;&#127483; Maldives Escape <span class="dest-location">Maldives</span></span>
+          <!-- duplicate for seamless loop -->
+          <span class="destination-pill">&#127477;&#127481; Lisbon &amp; the Coast <span class="dest-location">Portugal</span></span>
+          <span class="destination-pill">&#127471;&#127477; Tokyo to Kyoto <span class="dest-location">Japan</span></span>
+          <span class="destination-pill">&#127466;&#127480; Barcelona City Break <span class="dest-location">Spain</span></span>
+          <span class="destination-pill">&#127470;&#127465; Bali Explorer <span class="dest-location">Indonesia</span></span>
+          <span class="destination-pill">&#127468;&#127479; Greek Island Hop <span class="dest-location">Greece</span></span>
+          <span class="destination-pill">&#127482;&#127480; NYC Weekend <span class="dest-location">USA</span></span>
+          <span class="destination-pill">&#127474;&#127462; Morocco Road Trip <span class="dest-location">Morocco</span></span>
+          <span class="destination-pill">&#127464;&#127469; Swiss Alps Adventure <span class="dest-location">Switzerland</span></span>
+          <span class="destination-pill">&#127470;&#127481; Amalfi Coast <span class="dest-location">Italy</span></span>
+          <span class="destination-pill">&#127470;&#127480; Iceland Ring Road <span class="dest-location">Iceland</span></span>
+          <span class="destination-pill">&#127462;&#127479; Patagonia Trek <span class="dest-location">Argentina</span></span>
+          <span class="destination-pill">&#127474;&#127483; Maldives Escape <span class="dest-location">Maldives</span></span>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-stone-200 py-8 px-6 text-center" style="background: #fafaf9;">
+    <p class="text-xs text-stone-400 font-sans tracking-wide">&copy; 2026 Supertrip. All rights reserved.</p>
+  </footer>
+
+  <!-- EARLY ADOPTER MODAL -->
+  <div id="earlyAdopterModal" class="modal-backdrop" onclick="if(event.target===this)closeAllModals()">
+    <div class="modal-panel">
+      <button onclick="closeAllModals()" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-all" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+
+      <h2 class="font-display text-3xl text-stone-900 mb-1">Get Early Access</h2>
+      <p class="text-sm text-stone-500 mb-6">Lock in founder-era pricing.</p>
+
+      <div class="space-y-2 mb-8">
+        <div class="benefit-item">
+          <div class="benefit-icon" style="background: rgba(249,115,22,0.1);">&#x1F680;</div>
+          <div>
+            <p class="text-stone-900 font-semibold text-sm">First year free</p>
+            <p class="text-stone-500 text-xs">Worth $39.99 — on us</p>
+          </div>
+        </div>
+        <div class="benefit-item">
+          <div class="benefit-icon" style="background: rgba(16,185,129,0.1);">&#x1F511;</div>
+          <div>
+            <p class="text-stone-900 font-semibold text-sm">Early TestFlight access</p>
+            <p class="text-stone-500 text-xs">Be the first to try it</p>
+          </div>
+        </div>
+        <div class="benefit-item">
+          <div class="benefit-icon" style="background: rgba(139,92,246,0.1);">&#x1F4AC;</div>
+          <div>
+            <p class="text-stone-900 font-semibold text-sm">Direct line to the founder</p>
+            <p class="text-stone-500 text-xs">Your feedback shapes the product</p>
+          </div>
+        </div>
+        <div class="benefit-item">
+          <div class="benefit-icon" style="background: rgba(249,115,22,0.1);">&#x2728;</div>
+          <div>
+            <p class="text-stone-900 font-semibold text-sm">Shape the product</p>
+            <p class="text-stone-500 text-xs">Vote on features, get priority support</p>
+          </div>
+        </div>
+      </div>
+
+      <a href="https://buy.stripe.com/14A3cv7wp1PTbBO34QfIs01" target="_blank" rel="noopener" class="btn-primary w-full justify-center text-center">
+        Pay $5 &amp; Join
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- WAITLIST MODAL -->
+  <div id="waitlistModal" class="modal-backdrop" onclick="if(event.target===this)closeAllModals()">
+    <div class="modal-panel">
+      <button onclick="closeAllModals()" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-stone-300 hover:text-stone-500 hover:bg-stone-100 transition-all" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
+
+      <div id="waitlistForm">
+        <h2 class="font-display text-3xl text-stone-900 mb-1">Join the Waitlist</h2>
+        <p class="text-sm text-stone-500 mb-6">We'll notify you when Supertrip launches.</p>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input
+            type="email"
+            id="emailInput"
+            class="input-field flex-1"
+            placeholder="you@example.com"
+            required
+          >
+          <button onclick="submitWaitlist()" id="submitBtn" class="btn-primary whitespace-nowrap">
+            <span id="submitBtnText">Sign Up</span>
+            <span id="submitBtnSpinner" class="spinner hidden"></span>
+          </button>
+        </div>
+        <p id="errorMsg" class="text-red-500 text-xs mt-3 hidden"></p>
+      </div>
+
+      <div id="waitlistSuccess" class="hidden text-center py-4">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 check-pop" style="background: rgba(16,185,129,0.1);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <h2 class="font-display text-3xl text-stone-900 mb-2">You're in!</h2>
+        <p class="text-sm text-stone-500">We'll be in touch when Supertrip is ready for you.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ── Supabase Config ──
+    // Replace these with your Supabase project credentials
+    const SUPABASE_URL = 'https://dkqhtjpuukvyrmfijodc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrcWh0anB1dWt2eXJtZmlqb2RjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NDAyMTAsImV4cCI6MjA4OTUxNjIxMH0.aAocwBC4CkvWR1GXkZ2Mvzrd0pmQ7RtDTWg7D_qx550';
+
+    let supabaseClient = null;
+    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // ── Modal Logic ──
+    function openModal(type) {
+      closeAllModals();
+      const id = type === 'earlyAdopter' ? 'earlyAdopterModal' : 'waitlistModal';
+      document.getElementById(id).classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeAllModals() {
+      document.querySelectorAll('.modal-backdrop').forEach(function(m) { m.classList.remove('active'); });
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeAllModals();
+    });
+
+    // ── Waitlist Submission ──
+    function setSubmitLoading(loading) {
+      var btn = document.getElementById('submitBtn');
+      var text = document.getElementById('submitBtnText');
+      var spinner = document.getElementById('submitBtnSpinner');
+      btn.disabled = loading;
+      if (loading) {
+        text.classList.add('hidden');
+        spinner.classList.remove('hidden');
+      } else {
+        text.classList.remove('hidden');
+        spinner.classList.add('hidden');
+      }
+    }
+
+    async function submitWaitlist() {
+      var emailInput = document.getElementById('emailInput');
+      var errorMsg = document.getElementById('errorMsg');
+      var email = emailInput.value.trim();
+
+      errorMsg.classList.add('hidden');
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errorMsg.textContent = 'Please enter a valid email address.';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+
+      if (!supabaseClient) {
+        errorMsg.textContent = 'Waitlist is being set up — check back soon!';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+
+      setSubmitLoading(true);
+
+      try {
+        var result = await supabaseClient
+          .from('waitlist')
+          .insert([{ email: email }]);
+
+        if (result.error) {
+          if (result.error.code === '23505') {
+            errorMsg.textContent = "You're already on the list!";
+          } else {
+            errorMsg.textContent = 'Something went wrong. Please try again.';
+          }
+          errorMsg.classList.remove('hidden');
+          setSubmitLoading(false);
+          return;
+        }
+
+        document.getElementById('waitlistForm').classList.add('hidden');
+        document.getElementById('waitlistSuccess').classList.remove('hidden');
+      } catch (err) {
+        errorMsg.textContent = 'Connection error. Please try again.';
+        errorMsg.classList.remove('hidden');
+        setSubmitLoading(false);
+      }
+    }
+
+    document.getElementById('emailInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') submitWaitlist();
+    });
+
+  </script>
+
+</body>
+</html>
